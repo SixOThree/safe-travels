@@ -1,7 +1,7 @@
 ---
 description: Create a unique travel guide just for you
 argument-hint: Where do you want to go? Tell me more and I'll make a guide just for you
-allowed-tools: Read, Bash(mkdir *), Agent
+allowed-tools: Read, Bash(mkdir *), Agent, SendMessage
 ---
 
 ## Trip request
@@ -41,6 +41,9 @@ sights, food, photo spots, places to stay, and popular day trips/add-ons. Tell m
 {e.g. hiking, markets, slow mornings} — and I'll shape it around that, or I can just collect the best
 of everything. Anything you'd add, cut, or lean into?"
 
+Invite everything now, in the same message: additions after the build starts mean extra research and
+extra usage. One short sentence is enough; don't lecture.
+
 Wait for the reply. Only proceed after the user confirms; apply anything they give.
 
 ## Hand off
@@ -56,6 +59,15 @@ E.g.:
 Build a travel guide in `<destination-slug>/`.
 The traveler asked for: "<the user's request, plus anything they added when confirming>"
 ```
+
+## While it runs
+
+- If the user adds something while the guide is building, send it to the running `travel-guide`
+  agent with SendMessage. It folds the addition into research it hasn't started.
+- If the build stops before finishing (a usage limit, an error), and the user asks to continue,
+  resume the same `travel-guide` agent with SendMessage, saying it is a resumption. If it can't be
+  resumed, spawn a new one with the same run folder and the same request, again saying it is a
+  resumption. Either way it reuses the research already saved; never delete the run folder.
 
 ## Response
 

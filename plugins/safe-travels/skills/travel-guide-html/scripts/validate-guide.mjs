@@ -171,6 +171,13 @@ if (!dataEl) {
     const parsed = JSON.parse(dataEl.rawText);
     items = Array.isArray(parsed) ? parsed : (parsed.items || []);
     heroes = Array.isArray(parsed) ? {} : (parsed.heroes || {});
+    // Placements are expanded into items by inject-items.mjs; any left unexpanded render nowhere.
+    const placed = Object.keys((!Array.isArray(parsed) && parsed.placements) || {});
+    const itemIds = new Set(items.map(it => it && it.id));
+    const notInjected = placed.filter(id => !itemIds.has(id));
+    if (notInjected.length) {
+      errors.push(`${notInjected.length} placement(s) not expanded into items (run inject-items.mjs before validating): ${notInjected.slice(0, 8).join(', ')}${notInjected.length > 8 ? ', …' : ''}`);
+    }
   } catch (e) {
     errors.push(`Line ${nodeLine(dataEl)}: guide-data JSON is invalid — ${e.message}`);
   }

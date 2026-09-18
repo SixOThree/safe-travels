@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "safe-travels",
   "displayName": "Safe Travels",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Creates one-of-a-kind travel guides just for you. Dream about your next vacation while Claude works away. Each guide is web-researched around your needs and interests, then crafted into a beautiful, magazine-style webpage.",
   "author": {
     "name": "Nick Eng",

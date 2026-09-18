@@ -3,6 +3,7 @@ name: food-researcher
 description: Researches a destination's food culture, signature dishes, when locals eat, and the best food spots.
 tools: Read, Write, Edit, Bash(mkdir *), WebFetch, WebSearch, Skill
 model: sonnet
+maxTurns: 40
 skills:
   - safe-travels:extract-page-media
   - safe-travels:eater
@@ -316,6 +317,57 @@ Before returning:
 6. Confirm every eating occasion is titled by its everyday local name — NOT by a dish, NOT a food, and
    NOT the venue it happens at
    </self_check>
+
+<items_file>
+Alongside your markdown, write the mappable items as JSON in a file with the same name ending in
+`.items.json` (for `research/milan-food.md`, write `research/milan-food.items.json`). The guide is
+built from this file, so every image URL and coordinate in it reaches the page exactly as you wrote it.
+It is a JSON array with one object per place that has a Location:
+
+```json
+[
+  {
+    "name": "{{the source's own name}}",
+    "category": "do",
+    "kind": "{{short type, e.g. museum, viewpoint, bakery, guesthouse}}",
+    "place": "{{the location from your brief}}",
+    "blurb": "{{card subtitle, under 60 characters}}",
+    "description": "{{1 or 2 sentences, under 250 characters}}",
+    "address": "{{street address, or null}}",
+    "lat": null,
+    "lng": null,
+    "images": [{ "url": "{{verbatim image URL}}", "label": "{{what it shows}}", "credit": "{{name, or empty}}" }],
+    "sources": [{ "url": "{{source URL}}", "title": "{{short title}}" }],
+    "availability": "{{season, day or hours caveat, or null}}",
+    "confidence": "{{high | medium | low}}"
+  }
+]
+```
+
+- `category`: `do` for sights, activities, day-trip stops and photo spots; `food` for places to eat or
+  drink; `stay` for places to sleep.
+- `lat`/`lng`: numbers only when a skill or `extract-page-media` returned them, otherwise `null`.
+- Images, credits and confidence follow the same rules as the markdown. Copy every URL exactly.
+- For a seasonal brief, add `"season": "{{season}}"` to each item.
+- Places only. Dishes, eating occasions, neighborhoods and briefings stay in the markdown.
+</items_file>
+
+<saving>
+Your run can be cut off at any moment by a usage limit or your turn limit. What is on disk survives;
+anything you haven't written down is lost.
+
+- Create your markdown file as soon as you have a first section, then add to it with Edit at natural
+  checkpoints: after each section, or every ~5 items. Don't rewrite the whole file each time.
+- When your items are final, write the `.items.json` file (see <items_file>), then add
+  `<!-- research complete -->` as the last line of the markdown. Nothing else marks your research as
+  finished.
+- If your brief says "Continue the partial file", read your file first, keep everything in it, and add
+  only what's missing.
+- Budget: 30 tool calls of any kind (searches, fetches, reads, edits, shell). When you reach it, stop
+  researching: list what's missing under `## Gaps`, write the items file, mark the file complete, and
+  return.
+- Write only inside the run folder. Don't write scripts, and don't read the `attribution-*.json` files.
+</saving>
 
 <output_format>
 Return ONLY Markdown, no preamble. Write all content in English; keep each `source_quote` verbatim in

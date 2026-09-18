@@ -333,15 +333,34 @@ emits every image in each item's `images[]` via `galleryHTML()`.
 mechanism** (its styling is deliberately plain; redesign all visuals). It wires, from a single
 data block:
 
-1. The `<script type="application/json" id="guide-data">` block's `items` array, from the
-   researchers' markdown — the scaffold shows the default item shape. **Copy image URLs verbatim.**
-   - **`category`** — the pin's map color + filter chip + GPX export. Default palette: `do` (things
-     to see & do), `food`, `stay`.
+1. The `<script type="application/json" id="guide-data">` block. You don't type researched items
+   into it. Give it a `placements` object instead: one entry per researched item you're including,
+   keyed by the id from the collect index (see **Steps**), in the order the cards should appear.
+   `inject-items.mjs` then copies each placed item from `research/items.json` into the block's `items`
+   array, image URLs and all, so nothing gets retyped. Each placement takes:
    - **`section`** — editorial routing for place cards: the mount (its `data-section`) this card renders
      in. Many sections can share a `category` (e.g. `food` → `food-soul`, `food-sea`); name a section
      per the editorial spine you're building (see **Sections**).
-   - `description` = the "What:" field (1–2 sentences, <250 chars);
-   - `sources` = the "Sources:" URLs + short title.
+   - **`content: true`** instead of `section` — the item appears in your prose on an element carrying
+     its id as `data-id` (see point 6). It gets a map pin and no card.
+   - `feature: true` — THE unmissable place in its section (optional).
+   - `season` — for seasonal guides (see `references/seasonal-tabs.md`).
+   - Optional overrides when the research wording doesn't suit the page: `name`, `blurb` (the short
+     card subtitle), `description` (1–2 sentences, <250 chars), `category`, `lat`/`lng` (from
+     geocoding), and `images` (a list of that item's own image URLs, to reorder or trim; any other
+     URL is an error).
+
+   ```json
+   { "placements": {
+       "{{id-from-index}}": { "section": "food-uptown", "feature": true },
+       "{{id-shown-in-prose}}": { "content": true, "lat": 0, "lng": 0 } },
+     "items": [], "route": [], "branches": [] }
+   ```
+
+   After injection each item has the shape the scaffold shows. **`category`** is the pin's map
+   color + filter chip + GPX export; default palette `do` (things to see & do), `food`, `stay`.
+   A place the research doesn't have as an item (a whole day-trip town as one pin, say) goes straight
+   into `items` in that full shape. **Copy any hand-written image URL verbatim.**
 2. `galleryHTML(images)` — 1 image → plain image; >1 → a carousel (‹ › arrows + dots that
    cycle inline). No text overlay on the image — labels and credits show only in the lightbox.
    Clicking the image opens a cycling lightbox (← →, counter, Esc).
@@ -424,12 +443,41 @@ Use the most modern HTML/CSS/JS available, provided it has shipped in the curren
 - Accessibility: alt text, sufficient contrast, semantic headings.
 - External links open in a new tab. All `<a>` to source articles, booking sites, etc. get
   `target="_blank" rel="noopener"`. The guide itself stays open.
-- Write `guide.html` INCREMENTALLY (`<head>` first, then append
-  each section) so no single write is too large to complete.
+- Write `guide.html` in a few parts of up to ~30KB each: `<head>` and CSS, then the body sections in
+  two or three groups, then the data block and script. Every write or edit resends your whole context,
+  so don't append one section per edit. Don't go much past 30KB in one write either: a write that
+  takes several minutes outlasts the prompt cache.
 
-## Validate before finishing (do not skip)
+## Steps (do not skip)
 
-After writing `guide.html`, run the validation script:
+Run these in order from the run folder.
+
+**1. Collect the items**, before you plan the page:
+
+```bash
+node "${CLAUDE_SKILL_DIR}/scripts/collect-items.mjs" research/
+```
+
+It merges every `research/*.items.json` into `research/items.json` (the same place from two
+researchers becomes one item) and prints one line per item: id, category, pin, image count,
+confidence, name, blurb and the start of the description. Plan from this index; the ids are the
+placement keys and the `data-id` values. It also warns about research that isn't marked complete and
+about markdown with no items file. For those, read the items from that markdown and write them into
+`items` by hand.
+
+**2. Write `guide.html`** with `placements` in the data block (see **Required: Data-driven rendering**).
+
+**3. Inject the items:**
+
+```bash
+node "${CLAUDE_SKILL_DIR}/scripts/inject-items.mjs" guide.html --items research/items.json
+```
+
+It refuses to change the file if a placement names an unknown id, has neither `section` nor
+`content`, or lists an image URL the item doesn't have. Fix the placement and run it again; reruns
+are safe.
+
+**4. Validate:**
 
 ```bash
 node "${CLAUDE_SKILL_DIR}/scripts/validate-guide.mjs" guide.html
@@ -437,11 +485,11 @@ node "${CLAUDE_SKILL_DIR}/scripts/validate-guide.mjs" guide.html
 
 It checks JS syntax, HTML structure, image count and duplicates, required mechanisms, banned fonts, and
 verifies all image URLs are reachable. Fix any reported ERRORS before delivering.
-WARNINGS are worth reviewing — for broken images: 404/timeout → remove from the item's `images`
-array (if no images left, keep as text-only card); 403 → leave it (hotlink protection, `onerror`
-handles it). Duplicate images across items → deduplicate or remove.
+WARNINGS are worth reviewing — for broken images: 404/timeout → trim the URL from that placement's
+`images` (if no images are left, keep it as a text-only card) and rerun step 3; 403 → leave it (hotlink
+protection, `onerror` handles it). Duplicate images across items → deduplicate or remove.
 
-## Inject attribution (after validate)
+**5. Inject attribution** (after validate):
 
 ```bash
 node "${CLAUDE_SKILL_DIR}/scripts/inject-attribution.mjs" guide.html --dir research/
@@ -450,10 +498,16 @@ node "${CLAUDE_SKILL_DIR}/scripts/inject-attribution.mjs" guide.html --dir resea
 Fills the `#attribution-data` island from the research folder's `attribution-*.json`, joined to the
 guide's images by URL.
 
+**6. Stop.** Don't open `guide.html` in a browser, start a local server, or take screenshots to check
+it. The validator is the check, and every look at the page resends your whole context.
+
 ## Gotchas
 
-- **Image URLs verbatim.** Emit each `src` exactly as the researcher gave it — never retype, shorten,
-  or pad a filename from the place's name; a reconstructed URL 404s.
+- **Image URLs verbatim.** Researched item images arrive through `inject-items.mjs`. For every other
+  `src` (hero, day-trip photos, hand-written items), emit it exactly as the researcher gave it — never
+  retype, shorten, or pad a filename from the place's name; a reconstructed URL 404s.
+- **`data-id` values come from the collect index.** A content placement's element must carry the same id
+  the index printed, or the validator reports the item as orphaned.
 - **Use `id="map"` for the map div only; anchor the map section with a separate id (e.g.
   `#map-section`) and point nav links there.** This keeps `getElementById('map')` resolving to the
   real map div — if a heading or section also carries `id="map"`, it's matched first and the map

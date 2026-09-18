@@ -178,6 +178,11 @@ dialog.export-dialog .close{position:absolute;top:.8rem;right:1rem;background:no
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <script type="application/json" id="guide-data">
 {
+  "placements": {
+    "{{id-from-collect-index}}": { "section":"do", "feature":true },
+    "{{another-id}}": { "section":"food" },
+    "{{id-shown-in-prose}}": { "content":true }
+  },
   "items": [
     { "id":"d1", "category":"do", "section":"do", "feature":true, "name":"{{THE unmissable place}}", "blurb":"{{best time · what it is}}",
       "description":"{{1-2 sentences — what it is and why it's the one thing not to miss}}",
@@ -207,10 +212,13 @@ dialog.export-dialog .close{position:absolute;top:.8rem;right:1rem;background:no
 // ─── ONE SOURCE OF TRUTH ─────────────────────────────────────────────────────
 // All data lives in the <script type="application/json" id="guide-data"> block ABOVE and is
 // read here with JSON.parse. Because it is JSON: double-quoted keys/strings, NO comments, NO
-// trailing commas. Populate it from the researchers' markdown:
-//   • URLs VERBATIM — paste each image/source URL whole; JSON has no variables or concatenation.
-//   • `description` = the researcher's "What:" field (1-2 sentences).
-//   • `sources` = [{url, title}] from the researcher's "Sources:" URLs.
+// trailing commas.
+//   • `placements` = {id: {section | content, feature?, season?, overrides?}} for researched items.
+//     inject-items.mjs copies each placed item from research/items.json into `items`, so you never
+//     retype researched data. The example items above show the shape `items` has after injection.
+//   • Hand-written items (a place the research has no item for) go straight into `items`, and their
+//     URLs go in VERBATIM: JSON has no variables or concatenation.
+//   • `description` = 1-2 sentences. `sources` = [{url, title}].
 //   • `category` = map color + filter chip + GPX export; palette do / food / stay.
 //   • `section`  = the mount (its data-section) this card renders in. Many sections can
 //                  share a category (category "food" → sections "food-soul", "food-sea", …).
